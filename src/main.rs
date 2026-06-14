@@ -5,14 +5,17 @@ use command::Command;
 
 use std::env;
 use std::io::{self, Write};
+use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 
 fn validate_file(name: &str) -> Option<String> {
     let path = env::var("PATH").unwrap_or_default();
     for dir in path.split(':') {
         let full_path = Path::new(dir).join(name);
-        if full_path.is_file() {
-            return Some(full_path.to_string_lossy().into_owned());
+        if let Ok(meta) = full_path.metadata() {
+            if meta.is_file() && meta.permissions().mode() & 0o111 != 0 {
+                return Some(full_path.to_string_lossy().into_owned());
+            }
         }
     }
     None
