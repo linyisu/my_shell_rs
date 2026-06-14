@@ -61,7 +61,7 @@ fn main() {
                 if let Some(_) = Builtin::from_str(command.args[0].as_str()) {
                     println!("{} is a shell builtin", command.args[0]);
                 } else {
-                    println!("{}: command not found", command.args[0]);
+                    println!("{}: not found", command.args[0]);
                 }
             }
             "exit" => break,
