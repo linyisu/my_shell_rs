@@ -43,6 +43,18 @@ fn main() {
             "exit" => break,
             "echo" => println!("{}", &command.command[5..]),
             "pwd" => println!("{}", env::current_dir().unwrap().to_string_lossy()),
+            "cd" => {
+                let path = Path::new(&command.args[0]);
+                if let Ok(metadata) = path.metadata() {
+                    if metadata.is_dir() {
+                        env::set_current_dir(&command.args[0]).unwrap();
+                    } else {
+                        println!("cd: {}: No such file or directory", command.args[0]);
+                    }
+                } else {
+                    println!("cd: {}: No such file or directory", command.args[0]);
+                }
+            }
             _ => {
                 if validate_file(&command.name).is_some() {
                     process::Command::new(&command.name)
