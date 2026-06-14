@@ -1,51 +1,21 @@
-#[allow(unused_imports)]
+mod builtin;
+mod command;
+use builtin::Builtin;
+use command::Command;
+
+use std::env;
 use std::io::{self, Write};
+use std::path::Path;
 
-struct Command {
-    name: String,
-    command: String,
-    args: Vec<String>,
-}
-
-impl Command {
-    fn new() -> Self {
-        Self {
-            args: Vec::new(),
-            name: String::new(),
-            command: String::new(),
+fn validate_file(name: &str) -> Option<String> {
+    let path = env::var("PATH").unwrap_or_default();
+    for dir in path.split(':') {
+        let full_path = Path::new(dir).join(name);
+        if full_path.is_file() {
+            return Some(full_path.to_string_lossy().into_owned());
         }
     }
-
-    fn parse(&mut self) {
-        let mut command = String::new();
-        io::stdin().read_line(&mut command).unwrap();
-
-        self.command = String::from(command.trim());
-        self.args = self
-            .command
-            .split_whitespace()
-            .map(|s| s.to_string())
-            .collect();
-        self.name = self.args[0].clone();
-        self.args.remove(0);
-    }
-}
-
-enum Builtin {
-    Type,
-    Exit,
-    Echo,
-}
-
-impl Builtin {
-    fn from_str(s: &str) -> Option<Self> {
-        match s {
-            "type" => Some(Self::Type),
-            "exit" => Some(Self::Exit),
-            "echo" => Some(Self::Echo),
-            _ => None,
-        }
-    }
+    None
 }
 
 fn main() {
@@ -58,10 +28,13 @@ fn main() {
 
         match command.name.as_str() {
             "type" => {
-                if let Some(_) = Builtin::from_str(command.args[0].as_str()) {
-                    println!("{} is a shell builtin", command.args[0]);
+                let arg = command.args[0].as_str();
+                if Builtin::from_str(arg).is_some() {
+                    println!("{} is a shell builtin", arg);
+                } else if let Some(path) = validate_file(arg) {
+                    println!("{} is {}", arg, path);
                 } else {
-                    println!("{}: not found", command.args[0]);
+                    println!("{}: not found", arg);
                 }
             }
             "exit" => break,
