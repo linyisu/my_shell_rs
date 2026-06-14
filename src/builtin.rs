@@ -2,6 +2,7 @@ pub enum Builtin {
     Type,
     Exit,
     Echo,
+    Pwd,
 }
 
 impl Builtin {
@@ -10,6 +11,7 @@ impl Builtin {
             "type" => Some(Self::Type),
             "exit" => Some(Self::Exit),
             "echo" => Some(Self::Echo),
+            "pwd" => Some(Self::Pwd),
             _ => None,
         }
     }

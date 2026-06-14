@@ -42,6 +42,7 @@ fn main() {
             }
             "exit" => break,
             "echo" => println!("{}", &command.command[5..]),
+            "pwd" => println!("{}", env::current_dir().unwrap().to_string_lossy()),
             _ => {
                 if validate_file(&command.name).is_some() {
                     process::Command::new(&command.name)
