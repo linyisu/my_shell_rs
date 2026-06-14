@@ -3,10 +3,10 @@ mod command;
 use builtin::Builtin;
 use command::Command;
 
-use std::env;
 use std::io::{self, Write};
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
+use std::{env, process};
 
 fn validate_file(name: &str) -> Option<String> {
     let path = env::var("PATH").unwrap_or_default();
@@ -31,7 +31,7 @@ fn main() {
 
         match command.name.as_str() {
             "type" => {
-                let arg = command.args[0].as_str();
+                let arg = &command.args[0];
                 if Builtin::from_str(arg).is_some() {
                     println!("{} is a shell builtin", arg);
                 } else if let Some(path) = validate_file(arg) {
@@ -42,7 +42,16 @@ fn main() {
             }
             "exit" => break,
             "echo" => println!("{}", &command.command[5..]),
-            _ => println!("{}: command not found", command.command),
+            _ => {
+                if validate_file(&command.name).is_some() {
+                    process::Command::new(&command.name)
+                        .args(&command.args)
+                        .status()
+                        .unwrap();
+                } else {
+                    println!("{}: command not found", command.command)
+                }
+            }
         }
     }
 }
