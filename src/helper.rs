@@ -26,6 +26,8 @@ impl Completer for Helper {
             .chain(self.executables.iter())
             .cloned()
             .collect::<Vec<_>>();
+        println!("{:?}", self.executables);
+        println!("{:?}", merged);
         let candidates = merged
             .iter()
             .filter(|builtin| builtin.starts_with(word))

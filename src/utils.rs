@@ -1,4 +1,4 @@
-use std::{env, os::unix::fs::PermissionsExt, path::Path};
+use std::{env, fs, os::unix::fs::PermissionsExt, path::Path};
 
 pub fn validate_file(name: &str) -> Option<String> {
     let path = env::var("PATH").unwrap_or_default();
@@ -11,4 +11,21 @@ pub fn validate_file(name: &str) -> Option<String> {
         }
     }
     None
+}
+
+pub fn find_executable() -> Vec<String> {
+    let mut results = Vec::new();
+    let path = env::var("PATH").unwrap_or_default();
+    for dir in path.split(':') {
+        if let Ok(entries) = fs::read_dir(dir) {
+            for entry in entries.flatten() {
+                if let Ok(meta) = entry.metadata() {
+                    if meta.is_file() && meta.permissions().mode() & 0o111 != 0 {
+                        results.push(entry.path().to_string_lossy().into_owned());
+                    }
+                }
+            }
+        }
+    }
+    results
 }

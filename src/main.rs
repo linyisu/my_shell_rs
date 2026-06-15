@@ -6,18 +6,15 @@ mod utils;
 use builtin::Builtin;
 use command::{Command, CommandType};
 use helper::Helper;
+use utils::find_executable;
 
 use rustyline::{Editor, error::ReadlineError};
-use std::{env, fs, io::Write, process::exit};
+use std::{fs, io::Write, process::exit};
 
 fn main() -> anyhow::Result<()> {
     let helper = Helper {
         builtins: Builtin::names(),
-        executables: env::var("PATH")
-            .unwrap_or_default()
-            .split(':')
-            .map(|p| p.to_string())
-            .collect(),
+        executables: find_executable(),
     };
 
     let mut reader = Editor::new()?;
