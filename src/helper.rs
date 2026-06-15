@@ -21,22 +21,18 @@ impl Completer for Helper {
         let start = line[..pos].rfind(' ').map(|i| i + 1).unwrap_or(0);
         let word = &line[start..pos];
 
-        let merged = self
-            .builtins
-            .iter()
-            .chain(self.executables.iter())
-            .cloned()
-            .collect::<Vec<_>>();
-        let candidates: Vec<Pair> = merged
-            .iter()
-            .filter(|builtin| builtin.starts_with(word))
-            .map(|builtin| Pair {
-                display: builtin.clone(),
-                replacement: format!("{} ", builtin.clone()),
-            })
-            .collect();
+        if line[..start].trim().is_empty() {
+            let candidates: Vec<Pair> = self
+                .builtins
+                .iter()
+                .chain(self.executables.iter())
+                .filter(|builtin| builtin.starts_with(word))
+                .map(|builtin| Pair {
+                    display: builtin.clone(),
+                    replacement: format!("{} ", builtin.clone()),
+                })
+                .collect();
 
-        if !candidates.is_empty() {
             return Ok((start, candidates));
         }
 
