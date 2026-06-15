@@ -142,6 +142,13 @@ impl Command {
                     Err(format!("cd: {}: No such file or directory", self.args[0]))
                 }
             }
+            "complete" => match self.args[0].as_str() {
+                "-p" => Err(format!(
+                    "complete: {}: no completion specification",
+                    self.args[1]
+                )),
+                _ => Err(format!("complete: {}: No such flag", self.args[0])),
+            },
             _ => {
                 if validate_file(&self.name).is_some() {
                     let mut cmd = process::Command::new(&self.name);
