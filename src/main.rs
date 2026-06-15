@@ -102,26 +102,30 @@ fn main() {
                     println!("{}", error);
                 }
             },
-            CommandType::RedirectOut(ref stdout_path) => match run_command(&command) {
-                Ok(Some(output)) => {
-                    let mut file = fs::File::create(stdout_path).unwrap();
-                    writeln!(file, "{}", output).unwrap();
+            CommandType::RedirectOut(ref stdout_path) => {
+                let mut file = fs::File::create(stdout_path).unwrap();
+                match run_command(&command) {
+                    Ok(Some(output)) => {
+                        writeln!(file, "{}", output).unwrap();
+                    }
+                    Ok(None) => {}
+                    Err(error) => {
+                        println!("{}", error);
+                    }
                 }
-                Ok(None) => {}
-                Err(error) => {
-                    println!("{}", error);
+            }
+            CommandType::RedirectErr(ref stderr_path) => {
+                let mut file = fs::File::create(stderr_path).unwrap();
+                match run_command(&command) {
+                    Ok(Some(output)) => {
+                        println!("{}", output);
+                    }
+                    Ok(None) => {}
+                    Err(output) => {
+                        writeln!(file, "{}", output).unwrap();
+                    }
                 }
-            },
-            CommandType::RedirectErr(ref stderr_path) => match run_command(&command) {
-                Ok(Some(output)) => {
-                    println!("{}", output);
-                }
-                Ok(None) => {}
-                Err(output) => {
-                    let mut file = fs::File::create(stderr_path).unwrap();
-                    writeln!(file, "{}", output).unwrap();
-                }
-            },
+            }
         }
     }
 }
