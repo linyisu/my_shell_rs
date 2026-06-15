@@ -1,6 +1,6 @@
 use std::io;
 
-#[derive(Debug)]
+// #[derive(Debug)]
 pub struct Command {
     pub name: String,
     pub args: Vec<String>,
@@ -75,7 +75,5 @@ impl Command {
         self.tokenize(command);
         self.name = self.args[0].clone();
         self.args.remove(0);
-
-        println!("{:?}", self);
     }
 }
