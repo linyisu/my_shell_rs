@@ -15,6 +15,37 @@ impl Command {
         }
     }
 
+    fn tokenize(&mut self) {
+        let mut string = String::new();
+
+        enum State {
+            Normal,
+            SingleQuote,
+        }
+        let mut state = State::Normal;
+
+        for char in self.command.chars() {
+            match state {
+                State::Normal => match char {
+                    ' ' if !string.is_empty() && string.ends_with(' ') => {}
+                    '\'' => state = State::SingleQuote,
+                    _ => string.push(char),
+                },
+                State::SingleQuote => match char {
+                    '\'' => state = State::Normal,
+                    _ => string.push(char),
+                },
+            }
+        }
+
+        self.command = string;
+        self.args = self
+            .command
+            .split_whitespace()
+            .map(|s| s.to_string())
+            .collect();
+    }
+
     pub fn parse(&mut self) {
         let mut command = String::new();
         io::stdin().read_line(&mut command).unwrap();
@@ -28,5 +59,7 @@ impl Command {
             .unwrap_or_default()
             .trim()
             .to_string();
+
+        self.tokenize();
     }
 }

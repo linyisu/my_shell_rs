@@ -24,32 +24,6 @@ fn validate_file(name: &str) -> Option<String> {
     None
 }
 
-fn tokenize(command: String) -> String {
-    let mut string = String::new();
-
-    enum State {
-        Normal,
-        SingleQuote,
-    }
-    let mut state = State::Normal;
-
-    for char in command.chars() {
-        match state {
-            State::Normal => match char {
-                ' ' if !string.is_empty() && string.ends_with(' ') => {}
-                '\'' => state = State::SingleQuote,
-                _ => string.push(char),
-            },
-            State::SingleQuote => match char {
-                '\'' => state = State::Normal,
-                _ => string.push(char),
-            },
-        }
-    }
-
-    string
-}
-
 fn main() {
     loop {
         print!("$ ");
@@ -70,7 +44,7 @@ fn main() {
                 }
             }
             "exit" => break,
-            "echo" => println!("{}", tokenize(command.command)),
+            "echo" => println!("{}", command.command),
             "pwd" => println!("{}", env::current_dir().unwrap().to_string_lossy()),
             "cd" => {
                 let arg = &command.args[0];
