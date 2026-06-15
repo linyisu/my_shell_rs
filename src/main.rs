@@ -71,7 +71,7 @@ fn main() {
                         .status()
                         .unwrap();
                 } else {
-                    println!("{}: command not found", command.args.join(" "))
+                    println!("{}: command not found", command.name)
                 }
             }
         }
