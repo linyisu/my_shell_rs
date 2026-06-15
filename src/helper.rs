@@ -42,7 +42,7 @@ impl Completer for Helper {
             .map(|candidate| {
                 if candidate.replacement.ends_with('/') {
                     Pair {
-                        display: candidate.display.clone(),
+                        display: format!("{}/", candidate.display.clone()),
                         replacement: candidate.replacement.clone(),
                     }
                 } else {
