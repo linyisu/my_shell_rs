@@ -40,6 +40,15 @@ impl Completer for Helper {
             return Ok((start, candidates));
         }
 
-        self.filename_completer.complete(line, pos, ctx)
+        let (start, candidates) = self.filename_completer.complete(line, pos, ctx)?;
+        let candidates: Vec<Pair> = candidates
+            .iter()
+            .map(|candidate| Pair {
+                display: candidate.display.clone(),
+                replacement: format!("{} ", candidate.replacement.clone()),
+            })
+            .collect();
+
+        Ok((start, candidates))
     }
 }
