@@ -21,7 +21,7 @@ pub fn find_executable() -> Vec<String> {
             for entry in entries.flatten() {
                 if let Ok(meta) = entry.metadata() {
                     if meta.is_file() && meta.permissions().mode() & 0o111 != 0 {
-                        results.push(entry.path().to_string_lossy().into_owned());
+                        results.push(entry.file_name().to_string_lossy().into_owned());
                     }
                 }
             }
