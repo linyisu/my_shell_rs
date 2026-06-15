@@ -18,6 +18,7 @@ impl Command {
 
         enum State {
             Normal,
+            NormalBackslash,
             SingleQuote,
             DoubleQuote,
         }
@@ -31,10 +32,19 @@ impl Command {
                             self.args.push(String::new())
                         }
                     }
+                    '\\' => state = State::NormalBackslash,
                     '\'' => state = State::SingleQuote,
                     '\"' => state = State::DoubleQuote,
                     _ => self.args.last_mut().unwrap().push(char),
                 },
+                State::NormalBackslash => {
+                    let ch = match char {
+                        _ => char,
+                    };
+
+                    self.args.last_mut().unwrap().push(ch);
+                    state = State::Normal;
+                }
                 State::SingleQuote => match char {
                     '\'' => state = State::Normal,
                     _ => self.args.last_mut().unwrap().push(char),
