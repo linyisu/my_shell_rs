@@ -2,7 +2,6 @@ use std::io;
 
 pub struct Command {
     pub name: String,
-    pub command: String,
     pub args: Vec<String>,
 }
 
@@ -11,12 +10,11 @@ impl Command {
         Self {
             args: Vec::new(),
             name: String::new(),
-            command: String::new(),
         }
     }
 
-    fn tokenize(&mut self) {
-        let mut string = String::new();
+    fn tokenize(&mut self, command: String) {
+        self.args = vec![String::new()];
 
         enum State {
             Normal,
@@ -24,26 +22,23 @@ impl Command {
         }
         let mut state = State::Normal;
 
-        for char in self.command.chars() {
+        for char in command.chars() {
             match state {
                 State::Normal => match char {
-                    ' ' if !string.is_empty() && string.ends_with(' ') => {}
+                    ' ' => {
+                        if self.args.last().is_some_and(|s| !s.is_empty()) {
+                            self.args.push(String::new())
+                        }
+                    }
                     '\'' => state = State::SingleQuote,
-                    _ => string.push(char),
+                    _ => self.args.last_mut().unwrap().push(char),
                 },
                 State::SingleQuote => match char {
                     '\'' => state = State::Normal,
-                    _ => string.push(char),
+                    _ => self.args.last_mut().unwrap().push(char),
                 },
             }
         }
-
-        self.command = string;
-        self.args = self
-            .command
-            .split_whitespace()
-            .map(|s| s.to_string())
-            .collect();
     }
 
     pub fn parse(&mut self) {
@@ -54,12 +49,13 @@ impl Command {
         self.args = command.split_whitespace().map(|s| s.to_string()).collect();
         self.name = self.args[0].clone();
         self.args.remove(0);
-        self.command = command
+
+        let command = command
             .strip_prefix(&self.name)
             .unwrap_or_default()
             .trim()
             .to_string();
 
-        self.tokenize();
+        self.tokenize(command);
     }
 }

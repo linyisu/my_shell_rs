@@ -44,7 +44,7 @@ fn main() {
                 }
             }
             "exit" => break,
-            "echo" => println!("{}", command.command),
+            "echo" => println!("{}", command.args.join(" ")),
             "pwd" => println!("{}", env::current_dir().unwrap().to_string_lossy()),
             "cd" => {
                 let arg = &command.args[0];
@@ -71,7 +71,7 @@ fn main() {
                         .status()
                         .unwrap();
                 } else {
-                    println!("{}: command not found", command.command)
+                    println!("{}: command not found", command.args.join(" "))
                 }
             }
         }
