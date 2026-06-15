@@ -9,6 +9,7 @@ use std::{
     os::unix::fs::PermissionsExt,
     path::Path,
     process::{self, Stdio, exit},
+    sync::{Arc, Mutex},
 };
 
 use crate::command::CommandType;
@@ -65,9 +66,13 @@ fn run_command(command: &Command) -> Result<Option<String>, String> {
                 let mut cmd = process::Command::new(&command.name);
                 cmd.args(&command.args);
 
-                if let CommandType::Redirect(ref path) = command.command_type {
-                    let file = fs::File::create(path).unwrap();
+                if let CommandType::RedirectOut(ref stdout_path) = command.command_type {
+                    let file = fs::File::create(stdout_path).unwrap();
                     cmd.stdout(Stdio::from(file));
+                }
+                if let CommandType::RedirectErr(ref stderr_path) = command.command_type {
+                    let file = fs::File::create(stderr_path).unwrap();
+                    cmd.stderr(Stdio::from(file));
                 }
 
                 cmd.status().unwrap();
@@ -98,15 +103,19 @@ fn main() {
                     println!("{}", error);
                 }
             },
-            CommandType::Redirect(ref path) => match run_command(&command) {
+            CommandType::RedirectOut(ref stdout_path) => match run_command(&command) {
                 Ok(Some(output)) => {
-                    let mut file = fs::File::create(path).unwrap();
+                    let mut file = fs::File::create(stdout_path).unwrap();
                     writeln!(file, "{}", output).unwrap();
                 }
-                Ok(None) => {}
-                Err(e) => {
-                    eprintln!("{}", e);
+                _ => {}
+            },
+            CommandType::RedirectErr(ref stderr_path) => match run_command(&command) {
+                Err(output) => {
+                    let mut file = fs::File::create(stderr_path).unwrap();
+                    writeln!(file, "{}", output).unwrap();
                 }
+                _ => {}
             },
         }
     }

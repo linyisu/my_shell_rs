@@ -4,7 +4,8 @@ use std::io;
 pub enum CommandType {
     None,
     Normal,
-    Redirect(String),
+    RedirectOut(String),
+    RedirectErr(String),
 }
 
 #[derive(Debug)]
@@ -91,7 +92,11 @@ impl Command {
         self.command_type = CommandType::Normal;
         for arg in &self.args {
             if arg == ">" || arg == "1>" {
-                self.command_type = CommandType::Redirect(self.args.last().unwrap().clone());
+                self.command_type = CommandType::RedirectOut(self.args.last().unwrap().clone());
+                self.args = self.args[..self.args.len() - 2].to_vec();
+                break;
+            } else if arg == "2>" {
+                self.command_type = CommandType::RedirectErr(self.args.last().unwrap().clone());
                 self.args = self.args[..self.args.len() - 2].to_vec();
                 break;
             }
