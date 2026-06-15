@@ -27,5 +27,6 @@ pub fn find_executable() -> Vec<String> {
             }
         }
     }
+    results.sort();
     results
 }
