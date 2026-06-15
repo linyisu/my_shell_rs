@@ -18,14 +18,15 @@ impl Command {
     pub fn parse(&mut self) {
         let mut command = String::new();
         io::stdin().read_line(&mut command).unwrap();
+        let command = String::from(command.trim());
 
-        self.command = String::from(command.trim());
-        self.args = self
-            .command
-            .split_whitespace()
-            .map(|s| s.to_string())
-            .collect();
+        self.args = command.split_whitespace().map(|s| s.to_string()).collect();
         self.name = self.args[0].clone();
         self.args.remove(0);
+        self.command = command
+            .strip_prefix(&self.name)
+            .unwrap_or_default()
+            .trim()
+            .to_string();
     }
 }

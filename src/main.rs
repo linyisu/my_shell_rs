@@ -3,10 +3,13 @@ mod command;
 use builtin::Builtin;
 use command::Command;
 
-use std::io::{self, Write};
 use std::os::unix::fs::PermissionsExt;
-use std::path::Path;
-use std::{env, process};
+use std::{
+    env,
+    io::{self, Write},
+    path::Path,
+    process,
+};
 
 fn validate_file(name: &str) -> Option<String> {
     let path = env::var("PATH").unwrap_or_default();
@@ -19,6 +22,32 @@ fn validate_file(name: &str) -> Option<String> {
         }
     }
     None
+}
+
+fn tokenize(command: String) -> String {
+    let mut string = String::new();
+
+    enum State {
+        Normal,
+        SingleQuote,
+    }
+    let mut state = State::Normal;
+
+    for char in command.chars() {
+        match state {
+            State::Normal => match char {
+                ' ' if !string.is_empty() && string.ends_with(' ') => {}
+                '\'' => state = State::SingleQuote,
+                _ => string.push(char),
+            },
+            State::SingleQuote => match char {
+                '\'' => state = State::Normal,
+                _ => string.push(char),
+            },
+        }
+    }
+
+    string
 }
 
 fn main() {
@@ -41,7 +70,7 @@ fn main() {
                 }
             }
             "exit" => break,
-            "echo" => println!("{}", &command.command[5..]),
+            "echo" => println!("{}", tokenize(command.command)),
             "pwd" => println!("{}", env::current_dir().unwrap().to_string_lossy()),
             "cd" => {
                 let arg = &command.args[0];
