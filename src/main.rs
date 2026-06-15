@@ -44,10 +44,15 @@ fn main() {
             "echo" => println!("{}", &command.command[5..]),
             "pwd" => println!("{}", env::current_dir().unwrap().to_string_lossy()),
             "cd" => {
-                let path = Path::new(&command.args[0]);
-                if let Ok(metadata) = path.metadata() {
+                let arg = &command.args[0];
+                let path = if let Some(rest) = arg.strip_prefix("~") {
+                    format!("{}{}", env::var("HOME").unwrap_or_default(), rest)
+                } else {
+                    arg.to_string()
+                };
+                if let Ok(metadata) = Path::new(&path).metadata() {
                     if metadata.is_dir() {
-                        env::set_current_dir(&command.args[0]).unwrap();
+                        env::set_current_dir(path).unwrap();
                     } else {
                         println!("cd: {}: No such file or directory", command.args[0]);
                     }
