@@ -1,19 +1,28 @@
+#[derive(Clone, Copy)]
 pub enum Builtin {
-    Type,
-    Exit,
-    Echo,
     Pwd,
+    Echo,
+    Exit,
+    Type,
+    Complete,
 }
 
 impl Builtin {
-    pub const ALL: [Self; 4] = [Self::Type, Self::Exit, Self::Echo, Self::Pwd];
+    pub const ALL: &[Self] = &[
+        Self::Type,
+        Self::Exit,
+        Self::Echo,
+        Self::Pwd,
+        Self::Complete,
+    ];
 
     pub fn name(&self) -> &'static str {
         match self {
-            Builtin::Type => "type",
-            Builtin::Echo => "echo",
             Builtin::Pwd => "pwd",
+            Builtin::Echo => "echo",
             Builtin::Exit => "exit",
+            Builtin::Type => "type",
+            Builtin::Complete => "complete",
         }
     }
 
@@ -25,6 +34,9 @@ impl Builtin {
     }
 
     pub fn from_str(s: &str) -> Option<Self> {
-        Self::ALL.into_iter().find(|builtin| builtin.name() == s)
+        Self::ALL
+            .iter()
+            .copied()
+            .find(|builtin| builtin.name() == s)
     }
 }
