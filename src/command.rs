@@ -59,7 +59,7 @@ impl Command {
                     };
 
                     self.args.last_mut().unwrap().push(ch);
-                    state = State::Normal;
+                    state = State::DoubleQuote;
                 }
             }
         }
