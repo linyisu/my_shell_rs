@@ -43,9 +43,18 @@ impl Completer for Helper {
         let (start, candidates) = self.filename_completer.complete(line, pos, ctx)?;
         let candidates: Vec<Pair> = candidates
             .iter()
-            .map(|candidate| Pair {
-                display: candidate.display.clone(),
-                replacement: format!("{} ", candidate.replacement.clone()),
+            .map(|candidate| {
+                if candidate.replacement.ends_with('/') {
+                    Pair {
+                        display: candidate.display.clone(),
+                        replacement: candidate.replacement.clone(),
+                    }
+                } else {
+                    Pair {
+                        display: candidate.display.clone(),
+                        replacement: format!("{} ", candidate.replacement),
+                    }
+                }
             })
             .collect();
 
