@@ -1,9 +1,17 @@
 use std::io;
 
-// #[derive(Debug)]
+#[derive(Debug)]
+pub enum CommandType {
+    None,
+    Normal,
+    Redirect(String),
+}
+
+#[derive(Debug)]
 pub struct Command {
     pub name: String,
     pub args: Vec<String>,
+    pub command_type: CommandType,
 }
 
 impl Command {
@@ -11,13 +19,14 @@ impl Command {
         Self {
             args: Vec::new(),
             name: String::new(),
+            command_type: CommandType::None,
         }
     }
 
     fn tokenize(&mut self, command: String) {
         self.args = vec![String::new()];
 
-        // #[derive(Debug)]
+        #[derive(Debug)]
         enum State {
             Normal,
             SingleQuote,
@@ -72,8 +81,20 @@ impl Command {
         io::stdin().read_line(&mut command).unwrap();
         let command = String::from(command.trim());
 
+        if command.is_empty() {
+            return;
+        }
         self.tokenize(command);
         self.name = self.args[0].clone();
         self.args.remove(0);
+
+        self.command_type = CommandType::Normal;
+        for arg in &self.args {
+            if arg == ">" || arg == "1>" {
+                self.command_type = CommandType::Redirect(self.args.last().unwrap().clone());
+                self.args = self.args[..self.args.len() - 2].to_vec();
+                break;
+            }
+        }
     }
 }

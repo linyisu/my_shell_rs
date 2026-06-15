@@ -3,13 +3,15 @@ mod command;
 use builtin::Builtin;
 use command::Command;
 
-use std::os::unix::fs::PermissionsExt;
 use std::{
-    env,
+    env, fs,
     io::{self, Write},
+    os::unix::fs::PermissionsExt,
     path::Path,
-    process,
+    process::{self, exit},
 };
+
+use crate::command::CommandType;
 
 fn validate_file(name: &str) -> Option<String> {
     let path = env::var("PATH").unwrap_or_default();
@@ -24,6 +26,54 @@ fn validate_file(name: &str) -> Option<String> {
     None
 }
 
+fn run_command(command: &Command) -> Result<Option<String>, String> {
+    match command.name.as_str() {
+        "type" => {
+            let arg = &command.args[0];
+            if Builtin::from_str(arg).is_some() {
+                Ok(Some(format!("{} is a shell builtin", arg)))
+            } else if let Some(path) = validate_file(arg) {
+                Ok(Some(format!("{} is {}", arg, path)))
+            } else {
+                Err(format!("{}: not found", arg))
+            }
+        }
+        "exit" => exit(0),
+        "echo" => Ok(Some(command.args.join(" "))),
+        "pwd" => Ok(Some(
+            env::current_dir().unwrap().to_string_lossy().to_string(),
+        )),
+        "cd" => {
+            let arg = &command.args[0];
+            let path = if let Some(rest) = arg.strip_prefix("~") {
+                format!("{}{}", env::var("HOME").unwrap_or_default(), rest)
+            } else {
+                arg.to_string()
+            };
+
+            if env::set_current_dir(path).is_ok() {
+                Ok(None)
+            } else {
+                Err(format!(
+                    "cd: {}: No such file or directory",
+                    command.args[0]
+                ))
+            }
+        }
+        _ => {
+            if validate_file(&command.name).is_some() {
+                process::Command::new(&command.name)
+                    .args(&command.args)
+                    .status()
+                    .unwrap();
+                Ok(None)
+            } else {
+                Err(format!("{}: command not found", command.name))
+            }
+        }
+    }
+}
+
 fn main() {
     loop {
         print!("$ ");
@@ -32,46 +82,27 @@ fn main() {
         let mut command = Command::new();
         command.parse();
 
-        match command.name.as_str() {
-            "type" => {
-                let arg = &command.args[0];
-                if Builtin::from_str(arg).is_some() {
-                    println!("{} is a shell builtin", arg);
-                } else if let Some(path) = validate_file(arg) {
-                    println!("{} is {}", arg, path);
-                } else {
-                    println!("{}: not found", arg);
+        match command.command_type {
+            CommandType::None => continue,
+            CommandType::Normal => match run_command(&command) {
+                Ok(Some(output)) => {
+                    println!("{}", output);
                 }
-            }
-            "exit" => break,
-            "echo" => println!("{}", command.args.join(" ")),
-            "pwd" => println!("{}", env::current_dir().unwrap().to_string_lossy()),
-            "cd" => {
-                let arg = &command.args[0];
-                let path = if let Some(rest) = arg.strip_prefix("~") {
-                    format!("{}{}", env::var("HOME").unwrap_or_default(), rest)
-                } else {
-                    arg.to_string()
-                };
-
-                if let Ok(metadata) = Path::new(&path).metadata() {
-                    if metadata.is_dir() {
-                        env::set_current_dir(path).unwrap();
-                    } else {
-                        println!("cd: {}: No such file or directory", command.args[0]);
+                Ok(None) => {}
+                Err(error) => {
+                    println!("{}", error);
+                }
+            },
+            CommandType::Redirect(ref path) => {
+                let mut file = fs::File::create(path).unwrap();
+                match run_command(&command) {
+                    Ok(Some(output)) => {
+                        file.write_all(output.as_bytes()).unwrap();
                     }
-                } else {
-                    println!("cd: {}: No such file or directory", command.args[0]);
-                }
-            }
-            _ => {
-                if validate_file(&command.name).is_some() {
-                    process::Command::new(&command.name)
-                        .args(&command.args)
-                        .status()
-                        .unwrap();
-                } else {
-                    println!("{}: command not found", command.name)
+                    Ok(None) => {}
+                    Err(e) => {
+                        eprintln!("{}", e);
+                    }
                 }
             }
         }
