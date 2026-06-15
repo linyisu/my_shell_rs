@@ -50,6 +50,7 @@ fn main() {
                 } else {
                     arg.to_string()
                 };
+
                 if let Ok(metadata) = Path::new(&path).metadata() {
                     if metadata.is_dir() {
                         env::set_current_dir(path).unwrap();
