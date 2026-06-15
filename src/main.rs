@@ -3,6 +3,7 @@ mod command;
 mod helper;
 mod utils;
 
+use builtin::Builtin;
 use command::{Command, CommandType};
 use helper::Helper;
 
@@ -11,11 +12,12 @@ use std::{env, fs, io::Write, process::exit};
 
 fn main() -> anyhow::Result<()> {
     let helper = Helper {
-        builtins: vec![
-            String::from("exit"),
-            String::from("echo"),
-            env::var("PATH").unwrap_or_default(),
-        ],
+        builtins: Builtin::names(),
+        executables: env::var("PATH")
+            .unwrap_or_default()
+            .split(':')
+            .map(|p| p.to_string())
+            .collect(),
     };
 
     let mut reader = Editor::new()?;

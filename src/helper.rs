@@ -5,6 +5,7 @@ use rustyline_derive::{Helper, Highlighter, Hinter, Validator};
 #[derive(Helper, Hinter, Validator, Highlighter)]
 pub struct Helper {
     pub builtins: Vec<String>,
+    pub executables: Vec<String>,
 }
 
 impl Completer for Helper {
@@ -18,8 +19,14 @@ impl Completer for Helper {
     ) -> rustyline::Result<(usize, Vec<Pair>)> {
         let start = line[..pos].rfind(' ').map(|i| i + 1).unwrap_or(0);
         let word = &line[start..pos];
-        let candidates = self
+
+        let merged = self
             .builtins
+            .iter()
+            .chain(self.executables.iter())
+            .cloned()
+            .collect::<Vec<_>>();
+        let candidates = merged
             .iter()
             .filter(|builtin| builtin.starts_with(word))
             .map(|builtin| Pair {
