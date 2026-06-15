@@ -9,7 +9,6 @@ use std::{
     os::unix::fs::PermissionsExt,
     path::Path,
     process::{self, Stdio, exit},
-    sync::{Arc, Mutex},
 };
 
 use crate::command::CommandType;
@@ -108,14 +107,20 @@ fn main() {
                     let mut file = fs::File::create(stdout_path).unwrap();
                     writeln!(file, "{}", output).unwrap();
                 }
-                _ => {}
+                Ok(None) => {}
+                Err(error) => {
+                    println!("{}", error);
+                }
             },
             CommandType::RedirectErr(ref stderr_path) => match run_command(&command) {
+                Ok(Some(output)) => {
+                    println!("{}", output);
+                }
+                Ok(None) => {}
                 Err(output) => {
                     let mut file = fs::File::create(stderr_path).unwrap();
                     writeln!(file, "{}", output).unwrap();
                 }
-                _ => {}
             },
         }
     }
