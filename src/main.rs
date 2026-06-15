@@ -7,11 +7,15 @@ use command::{Command, CommandType};
 use helper::Helper;
 
 use rustyline::{Editor, error::ReadlineError};
-use std::{fs, io::Write, process::exit};
+use std::{env, fs, io::Write, process::exit};
 
 fn main() -> anyhow::Result<()> {
     let helper = Helper {
-        builtins: vec![String::from("exit"), String::from("echo")],
+        builtins: vec![
+            String::from("exit"),
+            String::from("echo"),
+            env::var("PATH").unwrap_or_default(),
+        ],
     };
 
     let mut reader = Editor::new()?;
