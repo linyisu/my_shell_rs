@@ -8,7 +8,7 @@ use std::{
     io::{self, Write},
     os::unix::fs::PermissionsExt,
     path::Path,
-    process::{self, exit},
+    process::{self, Stdio, exit},
 };
 
 use crate::command::CommandType;
@@ -62,10 +62,15 @@ fn run_command(command: &Command) -> Result<Option<String>, String> {
         }
         _ => {
             if validate_file(&command.name).is_some() {
-                process::Command::new(&command.name)
-                    .args(&command.args)
-                    .status()
-                    .unwrap();
+                let mut cmd = process::Command::new(&command.name);
+                cmd.args(&command.args);
+
+                if let CommandType::Redirect(ref path) = command.command_type {
+                    let file = fs::File::create(path).unwrap();
+                    cmd.stdout(Stdio::from(file));
+                }
+
+                cmd.status().unwrap();
                 Ok(None)
             } else {
                 Err(format!("{}: command not found", command.name))
@@ -93,18 +98,16 @@ fn main() {
                     println!("{}", error);
                 }
             },
-            CommandType::Redirect(ref path) => {
-                let mut file = fs::File::create(path).unwrap();
-                match run_command(&command) {
-                    Ok(Some(output)) => {
-                        file.write_all(output.as_bytes()).unwrap();
-                    }
-                    Ok(None) => {}
-                    Err(e) => {
-                        eprintln!("{}", e);
-                    }
+            CommandType::Redirect(ref path) => match run_command(&command) {
+                Ok(Some(output)) => {
+                    let mut file = fs::File::create(path).unwrap();
+                    writeln!(file, "{}", output).unwrap();
                 }
-            }
+                Ok(None) => {}
+                Err(e) => {
+                    eprintln!("{}", e);
+                }
+            },
         }
     }
 }
