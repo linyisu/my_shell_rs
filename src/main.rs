@@ -8,7 +8,7 @@ use command::{Command, CommandType};
 use helper::Helper;
 use utils::find_executable;
 
-use rustyline::{Config, Editor, error::ReadlineError};
+use rustyline::{Config, Editor, completion::FilenameCompleter, error::ReadlineError};
 use std::{fs, io::Write, process::exit};
 
 fn main() -> anyhow::Result<()> {
@@ -18,6 +18,7 @@ fn main() -> anyhow::Result<()> {
     let helper = Helper {
         builtins: Builtin::names(),
         executables: find_executable(),
+        filename_completer: FilenameCompleter::new(),
     };
 
     let mut reader = Editor::with_config(config)?;
