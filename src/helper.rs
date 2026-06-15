@@ -24,7 +24,7 @@ impl Completer for Helper {
             .filter(|builtin| builtin.starts_with(word))
             .map(|builtin| Pair {
                 display: builtin.clone(),
-                replacement: builtin.clone(),
+                replacement: format!("{} ", builtin.clone()),
             })
             .collect();
 
