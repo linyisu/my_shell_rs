@@ -65,12 +65,22 @@ fn run_command(command: &Command) -> Result<Option<String>, String> {
                 let mut cmd = process::Command::new(&command.name);
                 cmd.args(&command.args);
 
-                if let CommandType::RedirectOut(ref stdout_path) = command.command_type {
-                    let file = fs::File::create(stdout_path).unwrap();
+                if let CommandType::RedirectOut(ref stdout_path, is_append) = command.command_type {
+                    let file = fs::OpenOptions::new()
+                        .create(true)
+                        .write(true)
+                        .append(is_append)
+                        .open(stdout_path)
+                        .unwrap();
                     cmd.stdout(Stdio::from(file));
                 }
-                if let CommandType::RedirectErr(ref stderr_path) = command.command_type {
-                    let file = fs::File::create(stderr_path).unwrap();
+                if let CommandType::RedirectErr(ref stderr_path, is_append) = command.command_type {
+                    let file = fs::OpenOptions::new()
+                        .create(true)
+                        .write(true)
+                        .append(is_append)
+                        .open(stderr_path)
+                        .unwrap();
                     cmd.stderr(Stdio::from(file));
                 }
 
@@ -102,8 +112,13 @@ fn main() {
                     println!("{}", error);
                 }
             },
-            CommandType::RedirectOut(ref stdout_path) => {
-                let mut file = fs::File::create(stdout_path).unwrap();
+            CommandType::RedirectOut(ref stdout_path, is_append) => {
+                let mut file = fs::OpenOptions::new()
+                    .create(true)
+                    .write(true)
+                    .append(is_append)
+                    .open(stdout_path)
+                    .unwrap();
                 match run_command(&command) {
                     Ok(Some(output)) => {
                         writeln!(file, "{}", output).unwrap();
@@ -114,8 +129,13 @@ fn main() {
                     }
                 }
             }
-            CommandType::RedirectErr(ref stderr_path) => {
-                let mut file = fs::File::create(stderr_path).unwrap();
+            CommandType::RedirectErr(ref stderr_path, is_append) => {
+                let mut file = fs::OpenOptions::new()
+                    .create(true)
+                    .write(true)
+                    .append(is_append)
+                    .open(stderr_path)
+                    .unwrap();
                 match run_command(&command) {
                     Ok(Some(output)) => {
                         println!("{}", output);
