@@ -1,68 +1,82 @@
 mod builtin;
 mod command;
+mod helper;
 mod utils;
 
 use command::{Command, CommandType};
+use helper::Helper;
 
-use std::{
-    fs,
-    io::{self, Write},
-};
+use rustyline::{Editor, error::ReadlineError};
+use std::{fs, io::Write, process::exit};
 
-fn main() {
+fn main() -> anyhow::Result<()> {
+    let helper = Helper {
+        builtins: vec![String::from("exit"), String::from("echo")],
+    };
+
+    let mut reader = Editor::new()?;
+    reader.set_helper(Some(helper));
+
     loop {
-        print!("$ ");
-        io::stdout().flush().unwrap();
+        match reader.readline("$ ") {
+            Ok(line) => {
+                let mut command = Command::new();
+                command.parse(line);
 
-        let mut command = Command::new();
-        command.parse();
+                match command.command_type {
+                    CommandType::None => continue,
+                    CommandType::Normal => match command.run_command() {
+                        Ok(Some(output)) => {
+                            println!("{}", output);
+                        }
+                        Ok(None) => {}
+                        Err(error) => {
+                            println!("{}", error);
+                        }
+                    },
+                    CommandType::RedirectOut(ref stdout_path, is_append) => {
+                        let mut file = fs::OpenOptions::new()
+                            .create(true)
+                            .write(true)
+                            .append(is_append)
+                            .open(stdout_path)
+                            .unwrap();
 
-        match command.command_type {
-            CommandType::None => continue,
-            CommandType::Normal => match command.run_command() {
-                Ok(Some(output)) => {
-                    println!("{}", output);
-                }
-                Ok(None) => {}
-                Err(error) => {
-                    println!("{}", error);
-                }
-            },
-            CommandType::RedirectOut(ref stdout_path, is_append) => {
-                let mut file = fs::OpenOptions::new()
-                    .create(true)
-                    .write(true)
-                    .append(is_append)
-                    .open(stdout_path)
-                    .unwrap();
-
-                match command.run_command() {
-                    Ok(Some(output)) => {
-                        writeln!(file, "{}", output).unwrap();
+                        match command.run_command() {
+                            Ok(Some(output)) => {
+                                writeln!(file, "{}", output).unwrap();
+                            }
+                            Ok(None) => {}
+                            Err(error) => {
+                                println!("{}", error);
+                            }
+                        }
                     }
-                    Ok(None) => {}
-                    Err(error) => {
-                        println!("{}", error);
+                    CommandType::RedirectErr(ref stderr_path, is_append) => {
+                        let mut file = fs::OpenOptions::new()
+                            .create(true)
+                            .write(true)
+                            .append(is_append)
+                            .open(stderr_path)
+                            .unwrap();
+
+                        match command.run_command() {
+                            Ok(Some(output)) => {
+                                println!("{}", output);
+                            }
+                            Ok(None) => {}
+                            Err(output) => {
+                                writeln!(file, "{}", output).unwrap();
+                            }
+                        }
                     }
                 }
             }
-            CommandType::RedirectErr(ref stderr_path, is_append) => {
-                let mut file = fs::OpenOptions::new()
-                    .create(true)
-                    .write(true)
-                    .append(is_append)
-                    .open(stderr_path)
-                    .unwrap();
-
-                match command.run_command() {
-                    Ok(Some(output)) => {
-                        println!("{}", output);
-                    }
-                    Ok(None) => {}
-                    Err(output) => {
-                        writeln!(file, "{}", output).unwrap();
-                    }
-                }
+            Err(ReadlineError::Interrupted) => {
+                exit(0);
+            }
+            Err(error) => {
+                println!("{}", error);
             }
         }
     }

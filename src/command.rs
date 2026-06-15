@@ -2,7 +2,7 @@ use crate::builtin::Builtin;
 use crate::utils::validate_file;
 
 use std::{
-    env, fs, io,
+    env, fs,
     process::{self, Stdio, exit},
 };
 
@@ -83,9 +83,7 @@ impl Command {
         }
     }
 
-    pub fn parse(&mut self) {
-        let mut command = String::new();
-        io::stdin().read_line(&mut command).unwrap();
+    pub fn parse(&mut self, command: String) {
         let command = String::from(command.trim());
 
         if command.is_empty() {
