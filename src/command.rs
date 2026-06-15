@@ -1,4 +1,10 @@
-use std::io;
+use crate::builtin::Builtin;
+use crate::utils::validate_file;
+
+use std::{
+    env, fs, io,
+    process::{self, Stdio, exit},
+};
 
 #[derive(Debug)]
 pub enum CommandType {
@@ -91,9 +97,11 @@ impl Command {
 
         self.command_type = CommandType::Normal;
         for arg in &self.args {
-            if arg == ">" || arg == "1>" || arg == ">>" {
-                self.command_type =
-                    CommandType::RedirectOut(self.args.last().unwrap().clone(), arg == ">>");
+            if arg == ">" || arg == "1>" || arg == ">>" || arg == "1>>" {
+                self.command_type = CommandType::RedirectOut(
+                    self.args.last().unwrap().clone(),
+                    arg == ">>" || arg == "1>>",
+                );
                 self.args = self.args[..self.args.len() - 2].to_vec();
                 break;
             } else if arg == "2>" || arg == "2>>" {
@@ -101,6 +109,72 @@ impl Command {
                     CommandType::RedirectErr(self.args.last().unwrap().clone(), arg == "2>>");
                 self.args = self.args[..self.args.len() - 2].to_vec();
                 break;
+            }
+        }
+    }
+
+    pub fn run_command(&mut self) -> Result<Option<String>, String> {
+        match self.name.as_str() {
+            "type" => {
+                let arg = &self.args[0];
+                if Builtin::from_str(arg).is_some() {
+                    Ok(Some(format!("{} is a shell builtin", arg)))
+                } else if let Some(path) = validate_file(arg) {
+                    Ok(Some(format!("{} is {}", arg, path)))
+                } else {
+                    Err(format!("{}: not found", arg))
+                }
+            }
+            "exit" => exit(0),
+            "echo" => Ok(Some(self.args.join(" "))),
+            "pwd" => Ok(Some(
+                env::current_dir().unwrap().to_string_lossy().to_string(),
+            )),
+            "cd" => {
+                let arg = &self.args[0];
+                let path = if let Some(rest) = arg.strip_prefix("~") {
+                    format!("{}{}", env::var("HOME").unwrap_or_default(), rest)
+                } else {
+                    arg.to_string()
+                };
+
+                if env::set_current_dir(path).is_ok() {
+                    Ok(None)
+                } else {
+                    Err(format!("cd: {}: No such file or directory", self.args[0]))
+                }
+            }
+            _ => {
+                if validate_file(&self.name).is_some() {
+                    let mut cmd = process::Command::new(&self.name);
+                    cmd.args(&self.args);
+
+                    if let CommandType::RedirectOut(ref stdout_path, is_append) = self.command_type
+                    {
+                        let file = fs::OpenOptions::new()
+                            .create(true)
+                            .write(true)
+                            .append(is_append)
+                            .open(stdout_path)
+                            .unwrap();
+                        cmd.stdout(Stdio::from(file));
+                    }
+                    if let CommandType::RedirectErr(ref stderr_path, is_append) = self.command_type
+                    {
+                        let file = fs::OpenOptions::new()
+                            .create(true)
+                            .write(true)
+                            .append(is_append)
+                            .open(stderr_path)
+                            .unwrap();
+                        cmd.stderr(Stdio::from(file));
+                    }
+
+                    cmd.status().unwrap();
+                    Ok(None)
+                } else {
+                    Err(format!("{}: command not found", self.name))
+                }
             }
         }
     }
