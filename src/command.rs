@@ -19,6 +19,7 @@ impl Command {
         enum State {
             Normal,
             SingleQuote,
+            DoubleQuote,
         }
         let mut state = State::Normal;
 
@@ -31,10 +32,15 @@ impl Command {
                         }
                     }
                     '\'' => state = State::SingleQuote,
+                    '\"' => state = State::DoubleQuote,
                     _ => self.args.last_mut().unwrap().push(char),
                 },
                 State::SingleQuote => match char {
                     '\'' => state = State::Normal,
+                    _ => self.args.last_mut().unwrap().push(char),
+                },
+                State::DoubleQuote => match char {
+                    '\"' => state = State::Normal,
                     _ => self.args.last_mut().unwrap().push(char),
                 },
             }
