@@ -1,5 +1,5 @@
-use crate::builtin::Builtin;
-use crate::utils::validate_file;
+use crate::utils::is_executable;
+use crate::{NormalCompleter, builtin::Builtin};
 
 use std::{
     env, fs,
@@ -19,14 +19,16 @@ pub struct Command {
     pub name: String,
     pub args: Vec<String>,
     pub command_type: CommandType,
+    pub normal_completer: NormalCompleter,
 }
 
 impl Command {
-    pub fn new() -> Self {
+    pub fn new(normal_completer: NormalCompleter) -> Self {
         Self {
             args: Vec::new(),
             name: String::new(),
             command_type: CommandType::None,
+            normal_completer,
         }
     }
 
@@ -112,15 +114,19 @@ impl Command {
     }
 
     pub fn run_command(&mut self) -> Result<Option<String>, String> {
+        let mut iter = self.args.iter();
         match self.name.as_str() {
             "type" => {
-                let arg = &self.args[0];
-                if Builtin::from_str(arg).is_some() {
-                    Ok(Some(format!("{} is a shell builtin", arg)))
-                } else if let Some(path) = validate_file(arg) {
-                    Ok(Some(format!("{} is {}", arg, path)))
+                if let Some(arg) = iter.next() {
+                    if Builtin::is_builtin(arg) {
+                        Ok(Some(format!("{} is a shell builtin", arg)))
+                    } else if let Some(path) = is_executable(arg) {
+                        Ok(Some(format!("{} is {}", arg, path)))
+                    } else {
+                        Err(format!("{}: not found", arg))
+                    }
                 } else {
-                    Err(format!("{}: not found", arg))
+                    Err(String::from("type: argument required"))
                 }
             }
             "exit" => exit(0),
@@ -129,28 +135,62 @@ impl Command {
                 env::current_dir().unwrap().to_string_lossy().to_string(),
             )),
             "cd" => {
-                let arg = &self.args[0];
-                let path = if let Some(rest) = arg.strip_prefix("~") {
-                    format!("{}{}", env::var("HOME").unwrap_or_default(), rest)
-                } else {
-                    arg.to_string()
-                };
+                if let Some(arg) = iter.next() {
+                    let path = if let Some(rest) = arg.strip_prefix("~") {
+                        format!("{}{}", env::var("HOME").unwrap_or_default(), rest)
+                    } else {
+                        arg.to_string()
+                    };
 
-                if env::set_current_dir(path).is_ok() {
-                    Ok(None)
+                    if env::set_current_dir(path).is_ok() {
+                        Ok(None)
+                    } else {
+                        Err(format!("cd: {}: No such file or directory", self.args[0]))
+                    }
                 } else {
-                    Err(format!("cd: {}: No such file or directory", self.args[0]))
+                    env::set_current_dir(env::var("HOME").unwrap_or_default()).ok();
+                    Ok(None)
                 }
             }
-            "complete" => match self.args[0].as_str() {
-                "-p" => Err(format!(
-                    "complete: {}: no completion specification",
-                    self.args[1]
-                )),
-                _ => Err(format!("complete: {}: No such flag", self.args[0])),
-            },
+            "complete" => {
+                if let Some(flag) = iter.next() {
+                    match flag.as_str() {
+                        "-p" => {
+                            if let Some(name) = iter.next() {
+                                if self.normal_completer.borrow().contains_key(name) {
+                                    Ok(Some(format!(
+                                        "complete -C '{}' {}",
+                                        self.normal_completer.borrow()[name],
+                                        name
+                                    )))
+                                } else {
+                                    Err(format!("complete: {}: no completion specification", name))
+                                }
+                            } else {
+                                Err(format!("complete: {}: No name specified", self.args[0]))
+                            }
+                        }
+                        "-C" => {
+                            let path = iter
+                                .next()
+                                .ok_or_else(|| format!("complete: {}: No path specified", flag))?;
+                            let name = iter
+                                .next()
+                                .ok_or_else(|| format!("complete: {}: No name specified", flag))?;
+
+                            self.normal_completer
+                                .borrow_mut()
+                                .insert(name.clone(), path.clone());
+                            Ok(None)
+                        }
+                        _ => Err(format!("complete: {}: No such flag", self.args[0])),
+                    }
+                } else {
+                    Err(format!("complete: {}: No flag specified", self.args[0]))
+                }
+            }
             _ => {
-                if validate_file(&self.name).is_some() {
+                if is_executable(&self.name).is_some() {
                     let mut cmd = process::Command::new(&self.name);
                     cmd.args(&self.args);
 

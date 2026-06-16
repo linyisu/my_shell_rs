@@ -33,10 +33,7 @@ impl Builtin {
             .collect()
     }
 
-    pub fn from_str(s: &str) -> Option<Self> {
-        Self::ALL
-            .iter()
-            .copied()
-            .find(|builtin| builtin.name() == s)
+    pub fn is_builtin(s: &str) -> bool {
+        Self::ALL.iter().any(|builtin| builtin.name() == s)
     }
 }

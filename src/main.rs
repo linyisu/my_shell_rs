@@ -9,15 +9,20 @@ use helper::Helper;
 use utils::find_executable;
 
 use rustyline::{Config, Editor, completion::FilenameCompleter, error::ReadlineError};
-use std::{fs, io::Write, process::exit};
+use std::{cell::RefCell, collections::HashMap, fs, io::Write, process::exit, rc::Rc};
+
+pub type NormalCompleter = Rc<RefCell<HashMap<String, String>>>;
 
 fn main() -> anyhow::Result<()> {
+    let normal_completer = Rc::new(RefCell::new(HashMap::new()));
+
     let config = Config::builder()
         .completion_type(rustyline::CompletionType::List)
         .build();
     let helper = Helper {
         builtins: Builtin::names(),
         executables: find_executable(),
+        normal_completer: normal_completer.clone(),
         filename_completer: FilenameCompleter::new(),
     };
 
@@ -27,7 +32,7 @@ fn main() -> anyhow::Result<()> {
     loop {
         match reader.readline("$ ") {
             Ok(line) => {
-                let mut command = Command::new();
+                let mut command = Command::new(normal_completer.clone());
                 command.parse(line);
 
                 match command.command_type {

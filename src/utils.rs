@@ -1,6 +1,6 @@
 use std::{env, fs, os::unix::fs::PermissionsExt, path::Path};
 
-pub fn validate_file(name: &str) -> Option<String> {
+pub fn is_executable(name: &str) -> Option<String> {
     let path = env::var("PATH").unwrap_or_default();
     for dir in path.split(':') {
         let full_path = Path::new(dir).join(name);

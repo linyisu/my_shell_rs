@@ -2,10 +2,13 @@ use rustyline::Context;
 use rustyline::completion::{Completer, FilenameCompleter, Pair};
 use rustyline_derive::{Helper, Highlighter, Hinter, Validator};
 
+use crate::NormalCompleter;
+
 #[derive(Helper, Hinter, Validator, Highlighter)]
 pub struct Helper {
     pub builtins: Vec<String>,
     pub executables: Vec<String>,
+    pub normal_completer: NormalCompleter,
     pub filename_completer: FilenameCompleter,
 }
 
